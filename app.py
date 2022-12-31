@@ -1,5 +1,6 @@
 from flask import Flask
 
+import kafkaProducer
 
 app = Flask(__name__)
 
