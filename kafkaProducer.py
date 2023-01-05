@@ -5,18 +5,22 @@ from kafka import KafkaProducer
 
 import config
 
-NEWS_API_ENDPOINT = "https://newsapi.org/v2/everything?"
-
 producer = KafkaProducer(bootstrap_servers=["localhost:9092"])
+
+NEWS_API_ENDPOINT = "https://newsapi.org/v2/everything?"
+WIKI_API_ENDPOINT = "https://en.wikipedia.org/w/api.php"
+
+news_payload = {"sortBy": "popularity", "apiKey": config.news_api_key, "q": ""}
+wiki_payload = {"action": "query", "format": "json", "prop": "extracts", "explaintext": "1", "redirects": "1", "titles": ""}
 
 while True:
     # Loop through the topics
     for topic in config.keywords:
-        # Construct the query string for the News API
-        query_string = f"q={topic}&sortBy=popularity&apiKey={config.news_api_key}"
+        # Add topic as param to payload
+        news_payload['q'] = topic
 
         # Send a GET request to the News API
-        response = requests.get(NEWS_API_ENDPOINT + query_string)
+        response = requests.get(NEWS_API_ENDPOINT, params=news_payload)
 
         # Check the status code of the response
         if response.status_code == 200:
@@ -29,33 +33,28 @@ while True:
                 # Sleep for 1 second to avoid potentially getting rate limited
                 time.sleep(1)
 
-                producer.send(topic, json.dumps(articles).encode("utf-8"))
+                # Send the article to the corresponding topic in the kafka cluster
+                producer.send(topic, json.dumps(article).encode("utf-8"))
 
                 # Get the source domain name of the article
                 source_domain = article["source"]["name"]
 
-                # Construct the query string for the MediaWiki API
-                query_string = f"action=query&format=json&prop=extracts&exintro&explaintext&redirects=1&titles={source_domain}"
+                # Add the source domain as the title to search in wiki params
+                wiki_payload["titles"] = source_domain
 
-                # Send a GET request to the MediaWiki API
-                response = requests.get("https://en.wikipedia.org/w/api.php?" + query_string)
+                response = requests.get(WIKI_API_ENDPOINT, params=wiki_payload)
 
-                # Check the status code of the response
                 if response.status_code == 200:
                     # Get the page ID of the Wikipedia article
                     page_id = list(response.json()["query"]["pages"].keys())[0]
 
-                    # Get the description of the source domain from the JSON response
+                    # Get the description of the source domain from the JSON response using the page ID
                     source_description = response.json()["query"]["pages"][page_id]["extract"]
 
-                    # Send the description of the source domain to the "sources domain name" topic in the Kafka cluster
-                    producer.send("sources_domain_name", source_description.encode("utf-8"))
-                else:
-                    # If the request fails, print an error message
-                    print(f"Failed to retrieve description for source domain '{source_domain}': {response.text}")
-        else:
-            # If the request fails, print an error message
-            print(f"Failed to retrieve news articles for topic '{topic}': {response.text}")
+                    description_dict = {"domain_name": source_domain, "description": source_description}
+
+                    # Send the description of the source domain to the "sources_domain_name" topic in the Kafka cluster
+                    producer.send("sources_domain_name", json.dumps(description_dict).encode("utf-8"))
 
     # Sleep for 2 hours
     time.sleep(7200)
