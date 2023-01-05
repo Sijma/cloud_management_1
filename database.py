@@ -24,12 +24,19 @@ def add_to_database(topic, message):
     collection.update_one(message_dict, {"$setOnInsert": {}}, upsert=True)
 
 
+def are_keywords_valid(keywords):
+    for keyword in keywords:
+        if keyword not in config.keywords:
+            return False, f"Error: {keyword} is not a valid keyword"
+    return True, ""
+
+
 def register_user(data):
     # Check if the required keys are present in the JSON payload
     if "name" in data and "email" in data and "keywords" in data and "city" in data:
-        for keyword in data["keywords"]:
-            if keyword not in config.keywords:
-                return f"Error: {keyword} is not a valid keyword"
+        valid, message = are_keywords_valid(data["keywords"])
+        if not valid:
+            return message
 
         users_collection = db["users"]
         user = users_collection.find_one({"email": data["email"]})
@@ -74,3 +81,43 @@ def fetch_articles(email):
         return{"articles": articles_by_source}
     else:
         return "Error: user not found"
+
+
+def update_keywords(data):
+    if "email" in data and "keywords" in data:
+        new_keywords = data["keywords"]
+        valid, message = are_keywords_valid(new_keywords)
+        if not valid:
+            return message
+
+        email = data["email"]
+        users_collection = db["users"]
+
+        # Update the user document with the new keywords
+        result = users_collection.update_one(
+            {"email": email},
+            {"$set": {"keywords": new_keywords}}
+        )
+
+        # Check if the update was successful
+        if result.modified_count == 1:
+            # Return a success message
+            return "Keywords updated successfully"
+
+    # Return an error message
+    return "Error: Failed to update keywords", 400
+
+
+def delete_user(email):
+    users_collection = db["users"]
+
+    # Delete the user document with the given email
+    result = users_collection.delete_one({"email": email})
+
+    # Check if delete was successful
+    if result.deleted_count == 1:
+        # Return a success message
+        return "User deleted successfully"
+    else:
+        # Return an error message
+        return "Failed to delete user"
