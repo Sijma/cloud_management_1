@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#TODO: Maybe add zookeeper and kafka server startup to the script
+#TODO: Maybe add mongodb, zookeeper and kafka server startup to the script
 
-# Set the path to the kafka-topics.sh script
+# Set the path to the bin where kafka-topics.sh is
 KAFKA_BIN_PATH="/home/sijma/Kafka/kafka_2.13-3.3.1/bin/"
 
 # Set the bootstrap server and topic names
@@ -21,3 +21,5 @@ for topic in ${TOPICS[@]}; do
     echo "Topic '$topic' already exists, skipping..."
   fi
 done
+
+#TODO: Could also start the 3 python processes here in order

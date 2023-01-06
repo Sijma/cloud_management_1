@@ -4,11 +4,6 @@ import database
 app = Flask(__name__)
 
 
-@app.route('/')
-def hello_world():  # put application's code here
-    return 'Hello World!'
-
-
 @app.route("/create", methods=["POST"])
 def create():
     # Get the JSON payload from the request
@@ -23,6 +18,7 @@ def read():
     email = request.args.get("email")
 
     return database.fetch_articles(email)
+
 
 @app.route("/update", methods=["PUT"])
 def update():
