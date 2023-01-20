@@ -5,11 +5,6 @@ import graph
 app = Flask(__name__)
 
 
-@app.route('/')
-def hello_world():  # put application's code here
-    return 'Hello World!'
-
-
 @app.route("/create", methods=["POST"])
 def create():
     # Get the JSON payload from the request

@@ -4,11 +4,11 @@ import time
 import pymongo
 import json
 
-client = pymongo.MongoClient("mongodb://localhost:27017/")
+client = pymongo.MongoClient(config.mongo_server)
 
-db = client["cm_db"]
+db = client[config.database_name]
 
-# Check if the collection exists, and create it if it doesn't
+# Check if the collections exists, and create it if it doesn't
 for col in config.collections:
     if col not in db.list_collection_names():
         db.create_collection(col)
@@ -23,6 +23,7 @@ def add_to_database(topic, message):
     collection.update_one(message_dict, {"$setOnInsert": {}}, upsert=True)
 
 
+# Helper to determine if keywords provided in request exist in our array of available keywords
 def are_keywords_valid(keywords):
     for keyword in keywords:
         if keyword not in config.keywords:
@@ -124,10 +125,8 @@ def delete_user(email):
 
     # Check if delete was successful
     if result.deleted_count == 1:
-        # Return a success message
         return "User deleted successfully"
     else:
-        # Return an error message
         return "Failed to delete user"
 
 

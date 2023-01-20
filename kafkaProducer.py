@@ -5,7 +5,9 @@ from kafka import KafkaProducer
 
 import config
 
-producer = KafkaProducer(bootstrap_servers=["localhost:9092"])
+TIME_TO_WAIT = 7200  # The specified amount of time to wait for new topic requests. Current is 2 hours.
+
+producer = KafkaProducer(bootstrap_servers=[config.bootstrap_server])
 
 NEWS_API_ENDPOINT = "https://newsapi.org/v2/everything?"
 WIKI_API_ENDPOINT = "https://en.wikipedia.org/w/api.php"
@@ -31,6 +33,7 @@ while True:
             # Loop through the articles
             for article in articles:
                 # Sleep for 1 second to avoid potentially getting rate limited
+                # Creates a bit of a time offset between keyword queries, so articles from last keywords might be more recent
                 time.sleep(1)
 
                 # Send the article to the corresponding topic in the kafka cluster
@@ -38,6 +41,9 @@ while True:
 
                 # Get the source domain name of the article
                 source_domain = article["source"]["name"]
+
+                # TODO: Would be a lot more optimal to check the database if the source domain is already present, to avoid making unnecessary web requests and sleeping for 1 second for each article.
+                # TODO: However, the description might change at some point and this will always keep it updated, so it is not too wrong to keep.
 
                 # Add the source domain as the title to search in wiki params
                 wiki_payload["titles"] = source_domain
@@ -56,5 +62,5 @@ while True:
                     # Send the description of the source domain to the "sources_domain_name" topic in the Kafka cluster
                     producer.send("sources_domain_name", json.dumps(description_dict).encode("utf-8"))
 
-    # Sleep for 2 hours
-    time.sleep(7200)
+    # Sleep for specified amount
+    time.sleep(TIME_TO_WAIT)
