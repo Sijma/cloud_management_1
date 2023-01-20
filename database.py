@@ -1,3 +1,4 @@
+from bson import ObjectId
 import config
 import time
 import pymongo
@@ -14,13 +15,11 @@ for col in config.collections:
 
 
 def add_to_database(topic, message):
-    # Get the collection
     collection = db[topic]
 
     # Deserialize the message
     message_dict = json.loads(message)
 
-    # Insert the message into the collection
     collection.update_one(message_dict, {"$setOnInsert": {}}, upsert=True)
 
 
@@ -53,6 +52,14 @@ def register_user(data):
         return "Error: missing required keys"
 
 
+def fetch_all_articles():
+    articles = []
+    for keyword in config.keywords:
+        keyword_articles = list(db[keyword].find())
+        articles.extend(keyword_articles)
+    return articles
+
+
 def fetch_articles(email):
     # Find the user document in the collection with the matching email address
     users_collection = db["users"]
@@ -63,8 +70,9 @@ def fetch_articles(email):
         articles_by_source = {}
         for keyword in user["keywords"]:
             collection = db[keyword]
-            docs = collection.find({}, {"_id": 0})
+            docs = collection.find()
             for doc in docs:
+                doc["_id"] = str(doc.get("_id"))
                 source_name = doc["source"]["name"]
                 if source_name not in articles_by_source:
                     articles_by_source[source_name] = {"articles": []}
@@ -121,3 +129,14 @@ def delete_user(email):
     else:
         # Return an error message
         return "Failed to delete user"
+
+
+def get_article_by_id(article_id):
+    # Iterate through each collection
+    for keyword in config.keywords:
+        collection = db[keyword]
+        doc = collection.find_one({"_id": ObjectId(article_id)})
+        if doc:
+            doc["_id"] = str(doc.get("_id"))
+            return doc
+    return None

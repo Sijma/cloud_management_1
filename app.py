@@ -1,5 +1,6 @@
 from flask import Flask, request
 import database
+import graph
 
 app = Flask(__name__)
 
@@ -24,6 +25,7 @@ def read():
 
     return database.fetch_articles(email)
 
+
 @app.route("/update", methods=["PUT"])
 def update():
     # Get the email and new keywords from the request
@@ -37,6 +39,14 @@ def delete():
     email = request.args.get("email")
 
     return database.delete_user(email)
+
+
+@app.route("/recommend", methods=["GET"])
+def recommend():
+    # Get the email address from the request query string
+    article_id = request.args.get("article_id")
+
+    return graph.get_recommended(article_id)
 
 
 if __name__ == '__main__':
