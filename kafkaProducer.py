@@ -15,7 +15,11 @@ WIKI_API_ENDPOINT = "https://en.wikipedia.org/w/api.php"
 news_payload = {"sortBy": "popularity", "apiKey": config.news_api_key, "q": ""}
 wiki_payload = {"action": "query", "format": "json", "prop": "extracts", "explaintext": "1", "redirects": "1", "titles": ""}
 
+print("connected")
+
 while True:
+    seen_domains = []
+
     # Loop through the topics
     for topic in config.keywords:
         # Add topic as param to payload
@@ -32,35 +36,41 @@ while True:
 
             # Loop through the articles
             for article in articles:
-                # Sleep for 1 second to avoid potentially getting rate limited
-                # Creates a bit of a time offset between keyword queries, so articles from last keywords might be more recent
+                # For demonstration purposes
                 time.sleep(1)
 
                 # Send the article to the corresponding topic in the kafka cluster
                 producer.send(topic, json.dumps(article).encode("utf-8"))
+                print("Sent: ", article["title"])
 
                 # Get the source domain name of the article
                 source_domain = article["source"]["name"]
 
-                # TODO: Would be a lot more optimal to check the database if the source domain is already present, to avoid making unnecessary web requests and sleeping for 1 second for each article.
-                # TODO: However, the description might change at some point and this will always keep it updated, so it is not too wrong to keep.
+                if source_domain not in seen_domains:
+                    # Sleep for 1 second to avoid potentially getting rate limited
+                    # Creates a bit of a time offset between keyword queries, so articles from last keywords might be more recent
+                    time.sleep(1)
 
-                # Add the source domain as the title to search in wiki params
-                wiki_payload["titles"] = source_domain
+                    seen_domains.append(source_domain)
 
-                response = requests.get(WIKI_API_ENDPOINT, params=wiki_payload)
+                    print(f"{source_domain} is new.")
 
-                if response.status_code == 200:
-                    # Get the page ID of the Wikipedia article
-                    page_id = list(response.json()["query"]["pages"].keys())[0]
+                    # Add the source domain as the title to search in wiki params
+                    wiki_payload["titles"] = source_domain
 
-                    # Get the description of the source domain from the JSON response using the page ID
-                    source_description = response.json()["query"]["pages"][page_id]["extract"]
+                    response = requests.get(WIKI_API_ENDPOINT, params=wiki_payload)
 
-                    description_dict = {"domain_name": source_domain, "description": source_description}
+                    if response.status_code == 200:
+                        # Get the page ID of the Wikipedia article
+                        page_id = list(response.json()["query"]["pages"].keys())[0]
 
-                    # Send the description of the source domain to the "sources_domain_name" topic in the Kafka cluster
-                    producer.send("sources_domain_name", json.dumps(description_dict).encode("utf-8"))
+                        # Get the description of the source domain from the JSON response using the page ID
+                        source_description = response.json()["query"]["pages"][page_id].get("extract")
+                        if source_description is not None:
+                            description_dict = {"domain_name": source_domain, "description": source_description}
+
+                            # Send the description of the source domain to the "sources_domain_name" topic in the Kafka cluster
+                            producer.send("sources_domain_name", json.dumps(description_dict).encode("utf-8"))
 
     # Sleep for specified amount
     time.sleep(TIME_TO_WAIT)

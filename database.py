@@ -3,6 +3,7 @@ import config
 import time
 import pymongo
 import json
+from datetime import datetime
 
 client = pymongo.MongoClient(config.mongo_server)
 
@@ -20,6 +21,8 @@ def add_to_database(topic, message):
     # Deserialize the message
     message_dict = json.loads(message)
 
+    if topic != "sources_domain_name":
+        message_dict["publishedAt"] = datetime.strptime(message_dict["publishedAt"], "%Y-%m-%dT%H:%M:%SZ")
     collection.update_one(message_dict, {"$setOnInsert": {}}, upsert=True)
 
 
