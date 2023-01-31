@@ -1,10 +1,10 @@
 # Brief Setup that is expected by the python processes.
 
-### Install Kafka, mongoDB and start them.
+### Install Kafka, mongoDB.
 
 ### Install the packages required in requirements.txt by running `pip install -r requirements.txt`.
 
-### Run the topics.sh script.
+### Run the topics.sh script. This will also start the zookeeper and kafka servers.
 Before running it, make sure to edit the `KAFKA_BIN_PATH` variable to your own, and change the topics and/or boostrap_server address if necessary.
 
 ### Edit config.py, such as the news_api_key, server addresses, topics, etc.
