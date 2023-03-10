@@ -1,68 +1,23 @@
-# News Aggregator and Recommendation System
+# News Aggregator and Article Recommendation System
 
 ![image](https://user-images.githubusercontent.com/39009079/224078951-9341cd46-e3f2-4578-8d2d-9594cf2032b7.png)
 
-This project is a News Aggregator and Recommendation System that allows users to get up-to-date news articles from various categories, as well as receive recommendations for articles based on their interests. The system is built using Python and several open-source libraries, such as Flask, Kafka, and PyMongo.
+## Overview
 
-## How it works
+This is a microservices-based application which allows for scalability, flexibility, and modularity. It collects news articles from the News API, information regarding their sources, then stores them in a MongoDB database, and provides recommendations to users based on subscribed topics and related articles. The system consists of three microservices that work together to provide the full functionality of the system: the Kafka Producer, the Kafka Consumer, the Flask API and a Data Access Layer (DAL) that provides the 3 services with easy access to a common, local database.
 
-The system consists of three main components: the news scraper, the Kafka message broker, and the web application.
+## Architecture
 
-The news scraper fetches news articles from various sources using the News API and sends them as Kafka messages to the Kafka message broker. At the same time, it also queries the Wikipedia API to retrieve a short description for each news source and sends that as a separate message to the Kafka message broker.
+### Kafka producer
+The Kafka Producer is responsible for fetching news articles from the News API and sending them to the Kafka cluster. It is designed to run continuously and fetch new articles every two hours. It implements a loop that sends requests to the News API for each of the keywords in the configuration file. For each keyword, it sends the articles to the corresponding topic in the Kafka cluster and queries the Wikipedia API for a description of the source domain. The Kafka Producer then sleeps for two hours before repeating the loop.
 
-The Kafka message broker acts as a central hub for all the messages that are sent between the news scraper and the web application. It receives the messages sent by the news scraper and forwards them to the web application.
+### Kafka consumer
+The Kafka consumer is simply responsible for receiving the articles from the Kafka cluster, processing the articles, and storing them in the MongoDB database.
 
-The web application provides users with a web-based interface where they can view news articles from various categories and receive recommendations for articles based on their interests. The application is built using Flask, a Python web framework, and uses PyMongo to retrieve news articles and recommendations from a MongoDB database. It also uses Kafka-Python to subscribe to the Kafka message broker and receive new articles and recommendations in real-time.
+### Flask web application
+The Flask API provides a RESTful interface to users, allowing them to query the database for articles based on keywords they are subscribed to and recommendations based on related articles and authors. It also provides operations for registering to the system and subscribing to certain news keyword/topics.
 
-## Project Files
-`config.py`: This file contains all the configuration parameters for the project, such as the Kafka bootstrap server and API keys for external APIs.
+### Data Access Layer
+`database.py` serves as a DOL module for handling all database interactions and CRUD operations using MongoDB. A DOL approach was chosen to help enforce consistency and standardization in database operations across the multiple microservices. It also makes maintaining and expanding the system less error-prone regarding implementation, by providing a higher-level interface that is easier to use correctly, simplifying and abstracting the details and syntax needed to interact with it.
 
-`database.py`: This file contains the database connection and methods to interact with the MongoDB database.
-
-`app.py`: This file contains the Flask web application and routes for serving news articles and recommendations to users.
-
-`kafkaConsumer.py`: This file contains the Kafka consumer that subscribes to the Kafka message broker and adds new articles to the MongoDB database.
-
-`kafkaProducer.py`: This file contains the Kafka producer that fetches news articles from the News API, sends them to the Kafka message broker, and queries the Wikipedia API to retrieve descriptions for news sources.
-
-`graph.py`: This file contains the code for building a graph of related news articles and recommending articles to users based on their interests.
-
-`stackedBar.py`: This file contains the code for generating a stacked bar plot of the number of articles published per day and per category.
-
-`topics.sh`: This shell script creates the Kafka topics used by the system and starts the Kafka and MongoDB services.
-
-`requirements.txt`: This file contains a list of all the Python libraries required by the project.
-
-## Getting Started
-To get started with the News Aggregator and Recommendation System, you will need to have the following installed:
-
-Python 3
-Apache Kafka
-MongoDB
-
-Then, to install the required Python libraries, run the following command:
-```
-pip install -r requirements.txt
-```
-
-To start the Kafka and MongoDB services and create the necessary Kafka topics, run the following command:
-```
-./topics.sh
-```
-
-First start the Kafka consumer, by running the following command:
-```
-python kafkaConsumer.py
-```
-
-Then start the Kafka producer, by running:
-```
-python kafkaProducer.py
-```
-
-Finally, to start the Flask web application, run the following command:
-```
-python app.py
-```
-
-Once the web application is running, you can access it by navigating to `http://localhost:5000` in your web browser.
+The database schema used in this project is very simple, as each collection in the database corresponds to a single keyword. This design allows for easy scalability, as new keywords can be added simply by creating a new collection. The simplicity of the schema also allows for fast retrieval of articles using PyMongo's find() function.
