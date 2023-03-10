@@ -21,3 +21,26 @@ The Flask API provides a RESTful interface to users, allowing them to query the 
 `database.py` serves as a DOL module for handling all database interactions and CRUD operations using MongoDB. A DOL approach was chosen to help enforce consistency and standardization in database operations across the multiple microservices. It also makes maintaining and expanding the system less error-prone regarding implementation, by providing a higher-level interface that is easier to use correctly, simplifying and abstracting the details and syntax needed to interact with it.
 
 The database schema used in this project is very simple, as each collection in the database corresponds to a single keyword. This design allows for easy scalability, as new keywords can be added simply by creating a new collection. The simplicity of the schema also allows for fast retrieval of articles using PyMongo's find() function.
+
+## Available Rest API Operations
+### `/create` (POST)
+Allows a user to register to the system by providing their email address and list of keywords they are interested in.
+### `/read` (GET)
+Allows a user to fetch articles based on the keywords they have subscribed to.
+### `/update` (PUT)
+allows a user to update their subscription keywords.
+### `/delete` (DELETE)
+Allows a user to delete their account and associated subscription keywords.
+### `/recommend` (GET)
+Allows a user to get recommended articles based on a given article ID, using the recommendation algorithm as implemented in `graph.py`.
+
+## Additional Modules
+
+### config.py
+This is responsible for holding all the shared configuration variables and constants needed for the application to work properly, such as the API keys, Kafka cluster connection details, desired keywords, etc.
+
+### graph.py
+This script generates a graph of the articles in the MongoDB database based on the criteria of source and author. It uses the NetworkX library to create the graph and it provides a function to recommend articles to users based on the degree centrality of nodes in the graph. Additionally it includes the (optional) PyVis library to display it in an interactive HTML file if desired.
+
+### stackedBar.py
+This script generates a stacked bar plot of the number of articles per day and per category using data from the MongoDB database. It uses the Matplotlib library to create the plot and PyMongo to retrieve the data.
