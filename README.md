@@ -1,4 +1,4 @@
-# News Aggregator and Article Recommendation System
+# News Aggregator and Article Recommendation System using a microservices architectural approach
 
 ![image](https://user-images.githubusercontent.com/39009079/224078951-9341cd46-e3f2-4578-8d2d-9594cf2032b7.png)
 
